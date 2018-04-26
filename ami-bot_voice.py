@@ -2,6 +2,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 #la variabile update nelle funzioni è un pacchetto contentente tutto ciò che ci serve, preso da updater suppongo
 #importare azioni della chat da pacchetto telegram
 from telegram import ChatAction
+from gtts import gTTS
 
 #funzione invocata dal CH che fa risponde il bot con la funzione reply_text
 def start(bot,update):
@@ -11,9 +12,12 @@ def start(bot,update):
 #lo stesso testo viene inviato dal bot verso chi l'ha scritto
 def echo(bot, update):
     #metodo per far vedere che sta scrivendo, ci serve sapere l'id della chat, e l'azione da inviare
-    bot.sendChatAction(update.message.chat_id,ChatAction.TYPING)
+    bot.sendChatAction(update.message.chat_id,ChatAction.UPLOAD_AUDIO)
     repeat_text=update.message.text
-    update.message.reply_text(repeat_text)
+    tts= gTTS(text=repeat_text,lang='en')
+    tts.save('echo.mp3')
+    bot.sendVoice(update.message.chat_id,voice=open('echo.mp3','rb'))
+
     pass
 
 def main():
