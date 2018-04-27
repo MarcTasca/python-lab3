@@ -1,43 +1,62 @@
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
-#la variabile update nelle funzioni è un pacchetto contentente tutto ciò che ci serve, preso da updater suppongo
-#importare azioni della chat da pacchetto telegram
-from telegram import ChatAction
+from telegram.ext import Updater, CommandHandler
+import List
+from sys import argv
 
-#funzione invocata dal CH che fa risponde il bot con la funzione reply_text
-def start(bot,update):
-    update.message.reply_text('Hello!')
+#creo la lista e la riempo con il file passato da line di comando
+#variabile globale, probabilmente poco elegante, ma veloce e semplice
+list=List.create_list(argv[1])
 
-#update.message.text contiene il testo che è stato scritto al bot
-#lo stesso testo viene inviato dal bot verso chi l'ha scritto
-def echo(bot, update):
-    #metodo per far vedere che sta scrivendo, ci serve sapere l'id della chat, e l'azione da inviare
-    bot.sendChatAction(update.message.chat_id,ChatAction.TYPING)
-    repeat_text=update.message.text
-    update.message.reply_text(repeat_text)
-    pass
+#estraggo il messaggio dopo il comando
+def extract_text(string):
+    command,text=string.split(' ', 1)
+    return text
 
-def main():
-    #creo l'oggetto per poi aprire la connessione
+#aggiungo una task
+def newTask(bot,update):
+    task=extract_text(update.message.text)
+    List.add_task(list,task)
+    update.message.reply_text("task successfully added!")
+    List.save_list(list,argv[1])
+
+#mostro le task
+def showTasks(bot,update):
+    sorted_list=List.show_tasks(list)
+    if sorted_list==None:
+        message='nothing to show'
+    else:
+        message=sorted_list
+    update.message.reply_text(message)
+
+#rimuovo una task
+def removeTask(bot,update):
+    task = extract_text(update.message.text)
+    if List.remove_task(list,task)==1:
+        message='task successfully removed!'
+    else:
+        message='nothing to remove'
+    update.message.reply_text(message)
+    List.save_list(list, argv[1])
+
+#rimuovo le task con all'interno la stringa
+def removeAllTasks(bot,update):
+    substring = extract_text(update.message.text)
+    removed=List.remove_task_substring(list,substring)
+    if len(removed) == 0:
+        message='nothing to remove'
+    else:
+        message=removed
+    update.message.reply_text(message)
+    List.save_list(list, argv[1])
+
+#main con i singal handler e l'avvio del bot tramite token
+if __name__=='__main__':
     updater=Updater("579879753:AAHvYnM7J8QBwhp51YldYmZy-7vgnDqbMDs")
-
-    #creo l'ggetto dispatcher per gestire le chiamate
     dp=updater.dispatcher
 
-    #aggiungo la gestione di una chiamata, invocando una funzione start
-    #tramite una funzione importata da telegram.ext, che si chiama CommandHandler
-    #la funzione contiene il comando ricevuto, a cui associa il nome della funzione da invocare
-    dp.add_handler(CommandHandler('start',start))
+    dp.add_handler(CommandHandler('newtask',newTask))
+    dp.add_handler(CommandHandler('showtasks', showTasks))
+    dp.add_handler(CommandHandler('removetask', removeTask))
+    dp.add_handler(CommandHandler('removealltasks', removeAllTasks))
 
-    #serve per gestire i messaggi che non sono comandi
-    #il primo campo filtra il tipo di messaggio che ci interessa, in questo caso text, testuale
-    #il secondo campo invoca la funzione appropriata, Filters è da importare
-    dp.add_handler(MessageHandler(Filters.text , echo))
-    # comincia a chiedere se ci sono novità al server
     updater.start_polling()
-
-    #nasconde gli errori che vengono mostrati quando stoppo il programma (che comunque non venivano mostrati)
     updater.idle()
-
-
-if __name__ == '__main__':
-    main()
